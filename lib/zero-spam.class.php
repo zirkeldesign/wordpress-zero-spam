@@ -131,10 +131,10 @@ class Zero_Spam {
 
 						$total_spam      = count( $spam['raw'] );
 						$unique_spammers = count( $spam['unique_spammers'] );
+						$per_day         = $spam['average_spam_per_day'];
+						$num_days        = $spam['num_days'];
 
 						if ( $total_spam ) {
-							$per_day       = $this->_num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->_num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
-							$num_days      = $this->_num_days( end( $spam['raw'] )->date );
 							$starting_date = end( $spam['raw'] )->date;
 						}
 
@@ -181,13 +181,15 @@ class Zero_Spam {
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
-			'by_date'           => array(),
-			'raw'               => $ary,
-			'comment_spam'      => 0,
-			'registration_spam' => 0,
-			'cf7_spam'          => 0,
-			'gf_spam'           => 0,
-			'unique_spammers'   => array(),
+			'by_date'           	=> array(),
+			'raw'               	=> $ary,
+			'comment_spam'      	=> 0,
+			'registration_spam' 	=> 0,
+			'cf7_spam'          	=> 0,
+			'gf_spam'           	=> 0,
+			'average_spam_per_day'	=> 0,
+			'num_days'				=> 0,
+			'unique_spammers'   	=> array(),
 		);
 
 		foreach( $ary as $key => $obj ) {
@@ -239,6 +241,9 @@ class Zero_Spam {
 
 		}
 
+		$return['num_days'] = $this->_num_days( end( $return['raw'] )->date );
+		$return['average_spam_per_day'] = $return['num_days'] ? number_format( ( count( $return['raw'] ) / $return['num_days'] ), 2 ) : 0;
+
 		return $return;
 	}
 
@@ -258,7 +263,7 @@ class Zero_Spam {
 	/**
 	 * WP generator meta tag option.
 	 *
-	 * Field callback, renders radio inputs, note the name and value.
+	 * Field callback, renders checkbox inputs, note the name and value.
 	 *
 	 * @since 1.5.0
 	 */
@@ -272,6 +277,23 @@ class Zero_Spam {
 		 </label>
 
 		<p class="description"><?php echo __( 'It can be considered a security risk to make your WordPress version visible and public you should hide it.', 'zerospam' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Share data option.
+	 *
+	 * Field callback, renders checkbox inputs, note the name and value.
+	 *
+	 * @since 1.5.1
+	 */
+	public function field_share_data() {
+		?>
+		<label for="wp_share_data">
+			<input type="checkbox" id="wp_share_data" name="zerospam_general_settings[share_data]" value="1" <?php if ( isset( $this->settings['zerospam_general_settings']['share_data']) ): checked( $this->settings['zerospam_general_settings']['share_data'] ); endif; ?> /> <?php echo __( 'Share Spam Statistics', 'zerospam' ); ?>
+		 </label>
+
+		<p class="description"><?php echo __( 'Help <a href="https://wordpress.org/plugins/zero-spam/" target="_blank">WordPress Zero Spam</a> become even more powerful by sharing your site\'s spam statistics.', 'zerospam' ); ?> <a href="#" id="zerospam-share-data-link"><?php echo __( 'More info', 'zerospam' ); ?></a><span id="zerospam-share-data"><?php echo __( 'We do not collect any personally identifiable information and will never sell the information we collect. ', 'zerospam' ); ?></span></p>
 		<?php
 	}
 
@@ -521,6 +543,7 @@ class Zero_Spam {
 	private function _register_settings() {
 		register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
 		add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
+		add_settings_field( 'share_data', __( 'Share Spam Statistics', 'zerospam' ), array( &$this, 'field_share_data' ), 'zerospam_general_settings', 'section_general' );
 		add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
 		add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
@@ -849,9 +872,32 @@ class Zero_Spam {
 	 */
 	public function admin_footer() {
 		$ajax_nonce = wp_create_nonce( 'zero-spam' );
+		$data = $this->_parse_spam_ary( $this->_get_spam() );
+		$url = parse_url( $this->_get_url() );
+
+		$args = $data['comment_spam'];
+		$args .= '--' . $data['registration_spam'];
+		$args .= '--' . $data['cf7_spam'];
+		$args .= '--' . count( $data['unique_spammers'] );
+		$args .= '--' . $data['average_spam_per_day'];
+		$args .= '--' . $url['host'];
+		$args .= '--' . $_SERVER['SERVER_ADDR'];
+		$args .= '--' . $data['num_days'];
+
+		$args = urlencode( $args );
+		if ( isset( $this->settings['zerospam_general_settings']['share_data'] ) && ( '1' == $this->settings['zerospam_general_settings']['share_data'] ) ) {
+			$this->_pixel();
+		}
 		?>
 		<script>
 		jQuery( document ).ready( function( $ ) {
+			$( "#zerospam-share-data" ).hide();
+			$( "#zerospam-share-data-link" ).click( function( e ) {
+				e.preventDefault();
+				$( this ).remove();
+				$( "#zerospam-share-data" ).slideDown();
+			});
+
 			$(
 				".zero-spam__block-ip, .zero-spam__trash"
 			).click( function( e ) {
@@ -1238,9 +1284,42 @@ class Zero_Spam {
 	}
 
 	/**
+	 * Renders the share data pixel.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _pixel() {
+		$last_update = new DateTime( date( 'm/d/Y g:m:iA', get_option( 'zerospam_pixel' ) ) );
+		$expires = $last_update->add(new DateInterval('P7D'));
+		$now = new DateTime();
+
+		if ( $expires < $now  ) {
+			$data = $this->_parse_spam_ary( $this->_get_spam() );
+			$url = parse_url( $this->_get_url() );
+
+			$args = $data['comment_spam'];
+			$args .= '--' . $data['registration_spam'];
+			$args .= '--' . $data['cf7_spam'];
+			$args .= '--' . count( $data['unique_spammers'] );
+			$args .= '--' . $data['average_spam_per_day'];
+			$args .= '--' . $url['host'];
+			$args .= '--' . $_SERVER['SERVER_ADDR'];
+			$args .= '--' . $data['num_days'];
+
+			$args = urlencode( $args );
+			?>
+			<img src="//highfivery.local/api/zero-spam/user_data/<?php echo $args; ?>.png">
+			<?php
+			update_option( 'zerospam_pixel', time() );
+		}
+	}
+
+	/**
 	 *  Clears the log table.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _reset_log() {
 		global $wpdb;
