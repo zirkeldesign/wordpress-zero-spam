@@ -28,13 +28,13 @@ class Zero_Spam {
 	 *     @type string $img_dir Plugin image directory.
 	 *     @type array $tabs {
 	 *         Holds all of the WordPress Zero Spam setting pages.
-   *
+     *
 	 *         @type string $zerospam_general_settings General Settings page.
 	 *         @type string $zerospam_ip_block Blocked IP page.
 	 *     }
 	 *     @type plugins $tabs {
 	 *         Holds all of the supported plugins that are installed.
-   *
+     *
 	 *         @type boolean $cf7 Contact Form 7.
 	 *         @type boolean $gf Gravity Forms.
 	 *     }
@@ -983,6 +983,9 @@ class Zero_Spam {
 			case 'gf':
 				$type = 4;
 				break;
+			case 'buddypress-registration':
+				$type = 5;
+				break;
 		}
 
 		$wpdb->insert( $table_name, array(
@@ -1162,10 +1165,11 @@ class Zero_Spam {
 	 */
 	private function _load_settings() {
 		$default_settings =  array(
-			'spammer_msg_comment'        => 'There was a problem processing your comment.',
-			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
-			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-			'blocked_ip_msg'             => 'Access denied.'
+			'spammer_msg_comment'         => 'There was a problem processing your comment.',
+			'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
+			'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
+			'blocked_ip_msg'              => 'Access denied.',
+			'buddypress_msg_registration' => 'There was a problem processing your registration.'
 		);
 
 		// Retrieve the settings
@@ -1222,6 +1226,10 @@ class Zero_Spam {
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
 			add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
 		}
+
+		//if ( isset( $this->settings['zerospam_general_settings']['buddypress_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['buddypress_support'] ) ) {
+			add_action( 'bp_signup_validate', array( &$this, 'bp_signup_validate' ) );
+		//}
 
 		if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
 			add_action( 'wpcf7_validate', array( &$this, 'wpcf7_validate' ) );
@@ -1545,6 +1553,30 @@ class Zero_Spam {
 		}
 
 		return $commentdata;
+	}
+
+	/**
+	 * Preprocess comment fields.
+	 *
+	 * An action hook that is applied to the comment data prior to any other processing of the
+	 * comment's information when saving a comment data to the database.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://etivite.com/api-hooks/buddypress/trigger/do_action/bp_signup_validate/
+	 */
+	public function bp_signup_validate() {
+		global $bp;
+
+		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
+			do_action( 'zero_spam_found_spam_buddypress_registration' );
+
+			if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+				$this->_log_spam( 'buddypress-registration' );
+			}
+
+			die( __( $this->settings['zerospam_general_settings']['buddypress_msg_registration'], 'zerospam' ) );
+ 		}
 	}
 
 	/**
