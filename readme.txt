@@ -1,14 +1,14 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
+Contributors: bmarshall511
 Donate link: https://www.gittip.com/bmarshall511/
-Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
+Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam, ninja forms, contact form 7, buddypress, gravity forms
 Requires at least: 3.0.0
 Tested up to: 4.2.2
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Supports Gravity Forms, Ninja Forms, BuddyPress & more!
+Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Supports Gravity & Ninja Forms, BuddyPress & more!
 
 == Description ==
 
@@ -33,7 +33,7 @@ Major features in WordPress Zero Spam include:
 = Supported Plugins =
 
 * Contact Form 7
-* Gravity Form
+* Gravity Forms
 * Ninja Forms
 * BuddyPress
 
