@@ -1,25 +1,33 @@
-(function($) {
-    "use strict";
-    $(function() {
-        var forms = "#commentform";
-        forms += ", #contactform";
-        forms += ", #registerform";
-        forms += ", #buddypress #signup_form";
-        forms += ", .zerospam";
-        forms += ", .ninja-forms-form";
-        forms += ", .wpforms-form";
-        forms += ", .gform_wrapper form";
-        if (typeof zerospam.key != "undefined") {
-            $(forms).on("submit", function() {
-                $("<input>").attr("type", "hidden").attr("name", "zerospam_key").attr("value", zerospam.key).appendTo(forms);
-                return true;
-            });
-            $(document).on("gform_post_render", function() {
-                $("<input>").attr("type", "hidden").attr("name", "zerospam_key").attr("value", zerospam.key).appendTo(".gform_wrapper form ");
-            });
-            $(".wpcf7-submit").click(function() {
-                $("<input>").attr("type", "hidden").attr("name", "zerospam_key").attr("value", zerospam.key).appendTo(".wpcf7-form");
-            });
-        }
-    });
+(function ($) {
+	"use strict";
+	$(function () {
+		var forms = "#commentform";
+		forms += ", #contactform";
+		forms += ", #registerform";
+		forms += ", #buddypress #signup_form";
+		forms += ", .zerospam";
+		forms += ", .ninja-forms-form";
+		forms += ", .wpforms-form";
+		forms += ", .gform_wrapper form";
+		if (typeof zerospam.key !== 'undefined') {
+			var appendInput = function () {
+				$('<input>')
+					.attr({
+						type: 'hidden',
+						name: 'zerospam_key',
+						value: zerospam.key
+					})
+					.appendTo($(this));
+				return true;
+			};
+			$(forms)
+				.on('submit.zerospam', $.proxy(appendInput, forms));
+			$(document)
+				.on('gform_post_render.zerospam', $.proxy(appendInput, $('.gform_wrapper form')));
+			$('.wpcf7-form [type="submit"]')
+				.addClass('wpcf7-submit');
+			$('.wpcf7-submit')
+				.on('click.zerospam', $.proxy(appendInput, $('.wpcf7-form')));
+		}
+	});
 })(jQuery);
