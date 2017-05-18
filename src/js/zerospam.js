@@ -29,14 +29,17 @@
 		forms += ", .wpforms-form";
 		forms += ", .gform_wrapper form";
 
+		// Helper method
 		var appendInput = function () {
-			$('<input>')
+			var $container = $(this)
+				.filter(':not(:has([name="zerospam_key"]))');
+			var $input = $('<input>')
 				.attr({
 					type: 'hidden',
 					name: 'zerospam_key',
 					value: zerospam.key
 				})
-				.appendTo($(this));
+				.appendTo($container);
 			return true;
 		};
 
@@ -56,4 +59,5 @@
 	});
 
 })(window, window.jQuery || {});
+
 
