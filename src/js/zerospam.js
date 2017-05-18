@@ -10,46 +10,50 @@
  * @subpackage Zero Spam
  */
 
-( function( $ ) {
-    "use strict";
+(function (window, $) {
 
-    $( function() {
-      var forms = "#commentform";
-      forms += ", #contactform";
-      forms += ", #registerform";
-      forms += ", #buddypress #signup_form";
-      forms += ", .zerospam";
-      forms += ", .ninja-forms-form";
-      forms += ", .wpforms-form";
-      // change to class and look for gravity forms class to grab onto.
-      forms += ", .gform_wrapper form";
+	"use strict";
 
-      if ( typeof zerospam.key != "undefined" ) {
-        $( forms ).on( "submit", function() {
-          $( "<input>" ).attr( "type", "hidden" )
-              .attr( "name", "zerospam_key" )
-              .attr( "value", zerospam.key )
-              .appendTo( forms );
+	$(function () {
+		var zerospam = window.zerospam || {};
+		if (typeof zerospam.key === 'undefined') {
+			return;
+		}
 
-          return true;
-        });
+		var forms = "#commentform";
+		forms += ", #contactform";
+		forms += ", #registerform";
+		forms += ", #buddypress #signup_form";
+		forms += ", .zerospam";
+		forms += ", .ninja-forms-form";
+		forms += ", .wpforms-form";
+		forms += ", .gform_wrapper form";
 
-       	// Gravity Forms
-        $( document ).on( "gform_post_render", function() {
-          $( "<input>" ).attr( "type", "hidden" )
-            .attr( "name", "zerospam_key" )
-            .attr( "value", zerospam.key )
-            .appendTo( ".gform_wrapper form " );
-       	});
+		var appendInput = function () {
+			$('<input>')
+				.attr({
+					type: 'hidden',
+					name: 'zerospam_key',
+					value: zerospam.key
+				})
+				.appendTo($(this));
+			return true;
+		};
 
-        // Contact Form 7
-        $( ".wpcf7-submit" ).click( function() {
-          $( "<input>" ).attr( "type", "hidden" )
-              .attr( "name", "zerospam_key" )
-              .attr( "value", zerospam.key )
-              .appendTo( ".wpcf7-form" );
-        });
-      }
-    });
+		$(forms)
+			.on('submit.zerospam', $.proxy(appendInput, forms));
 
-})( jQuery );
+		// Gravity Forms
+		$(document)
+			.on('gform_post_render.zerospam', $.proxy(appendInput, $('.gform_wrapper form')));
+
+		// Contact Form 7
+		$('.wpcf7-form [type="submit"]')
+			.addClass('wpcf7-submit');
+		$('.wpcf7-submit')
+			.on('click.zerospam', $.proxy(appendInput, $('.wpcf7-form')));
+
+	});
+
+})(window, window.jQuery || {});
+
