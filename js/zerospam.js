@@ -1,6 +1,10 @@
 (function ($) {
 	"use strict";
 	$(function () {
+		var zerospam = window.zerospam || {};
+		if (!zerospam.length) {
+			return;
+		}
 		var forms = "#commentform";
 		forms += ", #contactform";
 		forms += ", #registerform";
